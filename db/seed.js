@@ -70,7 +70,7 @@ async function createInitialPosts() {
     await createPost({
       authorId: glamgal.id,
       title: "Wtf kinda name",
-      content: "Fuck glamgalm. shit stupid ass name",
+      content: "Fuck glamgal. shit stupid ass name",
       tags: ["#happy", "#youcandoanything", "#worst-day-ever"],
     });
 
