@@ -52,6 +52,7 @@ postsRouter.get("/", async (req, res, next) => {
 });
 
 postsRouter.patch("/:postId", requireUser, async (req, res, next) => {
+  console.log("Starting patch request")
   const { postId } = req.params;
   const { title, content, tags } = req.body;
 
@@ -81,9 +82,30 @@ postsRouter.patch("/:postId", requireUser, async (req, res, next) => {
         message: "You cannot update a post that is not yours",
       });
     }
+    console.log("Done with patch request")
   } catch ({ name, message }) {
     next({ name, message });
   }
 });
+
+postsRouter.delete('/:postId', requireUser, async (req, res, next) => {
+  try {
+    const post = await getPostById(req.params.postId);
+    if (post && post.author.id === req.user.id) {
+      const updatedPost = await updatePost(post.id, {active:false});
+      res.send({post: updatePost});
+    } else{
+      next(post ? {
+        name: "UnauthorizedUserError",
+        message: "You cannot delete a post which is not yours"
+      } : {
+        name: "PostNotFoundError",
+        message: "That post does not exist"
+      });
+    }
+  } catch ({name, message}){
+    next({name, message})
+  }
+})
 
 module.exports = postsRouter;
