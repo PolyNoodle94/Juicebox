@@ -8,6 +8,7 @@ const {
   updatePost,
   getPostById,
 } = require("../db");
+
 const { requireUser } = require("./utils");
 
 postsRouter.use("/", (req, res, next) => {
@@ -46,13 +47,19 @@ postsRouter.post("/", requireUser, async (req, res, next) => {
 });
 
 postsRouter.get("/", async (req, res, next) => {
-  const posts = await getAllPosts();
-
-  res.send(posts);
+  try {
+    const allPosts = await getAllPosts();
+    const posts = allPosts.filter((post) => {
+      return post.active || (req.user && post.author.id === req.user.id);
+    });
+    res.send({ posts });
+  } catch ({ name, message }) {
+    next({ name, message });
+  }
 });
 
 postsRouter.patch("/:postId", requireUser, async (req, res, next) => {
-  console.log("Starting patch request")
+  console.log("Starting patch request");
   const { postId } = req.params;
   const { title, content, tags } = req.body;
 
@@ -82,30 +89,34 @@ postsRouter.patch("/:postId", requireUser, async (req, res, next) => {
         message: "You cannot update a post that is not yours",
       });
     }
-    console.log("Done with patch request")
+    console.log("Done with patch request");
   } catch ({ name, message }) {
     next({ name, message });
   }
 });
 
-postsRouter.delete('/:postId', requireUser, async (req, res, next) => {
+postsRouter.delete("/:postId", requireUser, async (req, res, next) => {
   try {
     const post = await getPostById(req.params.postId);
     if (post && post.author.id === req.user.id) {
-      const updatedPost = await updatePost(post.id, {active:false});
-      res.send({post: updatePost});
-    } else{
-      next(post ? {
-        name: "UnauthorizedUserError",
-        message: "You cannot delete a post which is not yours"
-      } : {
-        name: "PostNotFoundError",
-        message: "That post does not exist"
-      });
+      const updatedPost = await updatePost(post.id, { active: false });
+      res.send({ post: updatedPost });
+    } else {
+      next(
+        post
+          ? {
+              name: "UnauthorizedUserError",
+              message: "You cannot delete a post which is not yours",
+            }
+          : {
+              name: "PostNotFoundError",
+              message: "That post does not exist",
+            }
+      );
     }
-  } catch ({name, message}){
-    next({name, message})
+  } catch ({ name, message }) {
+    next({ name, message });
   }
-})
+});
 
 module.exports = postsRouter;
